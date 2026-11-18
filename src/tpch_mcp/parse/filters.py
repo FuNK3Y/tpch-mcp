@@ -209,8 +209,8 @@ class FilterSet:
                 for w in vals:
                     v = self._match_value(f, w)
                     props.append((f.type, f.id, v["id"]))
-                applied.append(f"{f.name} {'any of' if f.type == 'or' else 'all of'} "
-                               f"{[self._match_value(f, w)['label'] for w in vals]}")
+                labels = [self._match_value(f, w)["label"] for w in vals]
+                applied.append(f"{f.name}: {(' or ' if f.type == 'or' else ' and ').join(labels)}")
             elif f.type in ("min", "max", "range"):
                 if not isinstance(wanted, dict):
                     wanted = {"min": wanted} if f.type == "min" else {"max": wanted} if f.type == "max" else {"min": wanted}

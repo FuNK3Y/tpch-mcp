@@ -34,9 +34,9 @@ def parse_pricechart(raw: str | list, days: int = 365, samples: int = 24) -> dic
         return round((cur - old) / old * 100, 1) if old else None
 
     step = max(1, len(pts) // samples)
-    sampled = pts[::step]
-    if sampled[-1] != pts[-1]:
-        sampled.append(pts[-1])
+    # sample evenly, but always keep the first, last, lowest and highest day
+    keep = set(pts[::step]) | {pts[0], pts[-1], (lo_day, lo), (hi_day, hi)}
+    sampled = sorted(keep)
     return {
         "currency": "CHF",
         "from": pts[0][0], "to": cur_day, "points": len(pts),

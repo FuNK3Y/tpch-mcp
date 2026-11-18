@@ -30,3 +30,6 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = ["live: hits the real toppreise.ch (slow, opt-in with -m live)"]
 addopts = "-m 'not live'"
+
+[tool.setuptools.package-data]
+tpch_mcp = ["ui/*.html"]

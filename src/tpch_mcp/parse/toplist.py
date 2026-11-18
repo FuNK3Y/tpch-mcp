@@ -11,7 +11,7 @@ import re
 
 from selectolax.lexbor import LexborHTMLParser, LexborNode
 
-from .util import absolute, price, text
+from .util import absolute, image_url, price, text
 
 LISTS = {
     "top100": ("/top-products", "Plugin_TopProductsListFull", "Top 100 (most popular)"),
@@ -20,17 +20,6 @@ LISTS = {
     "new_products": ("/new-products", "Plugin_NewProductsListFull", "New products"),
 }
 PERIODS_H = (1, 2, 4, 8, 12, 24, 48)
-
-
-def _image(card: LexborNode, size: int = 400) -> str | None:
-    img = card.css_first("img.Plugin_Image")
-    if img is None:
-        return None
-    src = img.attributes.get("data-src") or img.attributes.get("src") or ""  # lazy images keep it in data-src
-    if not src or src.endswith(".svg") or "/img/" not in src:  # lazy placeholder / "no photo" image
-        return None
-    src = re.sub(r"/(\d+)-([0-9a-f]+)$", rf"/{size}-\2", src)
-    return "https:" + src if src.startswith("//") else src
 
 
 def _card(card: LexborNode, rank: int) -> dict:
@@ -55,7 +44,7 @@ def _card(card: LexborNode, rank: int) -> dict:
         "name": text(card.css_first(".product-name")),
         "price": price(text(card.css_first(".productPrice .Plugin_Price"))),
         "price_incl_shipping": price(text(card.css_first(".shippingPrice .Plugin_Price"))),
-        "image": _image(card),
+        "image": image_url(card),
         "url": absolute(href.split("?")[0]) if href else None,
     }
     if rating:

@@ -3,7 +3,7 @@ import re
 
 from selectolax.lexbor import LexborHTMLParser, LexborNode
 
-from .util import AVAILABILITY, absolute, avail_level, price, text
+from .util import AVAILABILITY, absolute, avail_level, image_url, price, text
 
 CARD_CLASSES = ("mixedBrowsingList", "mixedBrowsingExpert", "mixedBrowsingBox")
 _CARD_SEL = ", ".join(f"div.{c}" for c in CARD_CLASSES)
@@ -43,6 +43,7 @@ def _product_row(n: LexborNode) -> dict:
         "price": price(text(n.css_first(".productPrice .Plugin_Price"))),
         "price_incl_shipping": price(text(n.css_first(".shippingPrice .Plugin_Price"))),
         "price_per_unit": _ppu(n),
+        "image": image_url(n),
         "availability": AVAILABILITY.get(level) if level else None,
         "url": absolute(link.split("?")[0]) if link else None,
     }
@@ -84,6 +85,7 @@ def parse_listing(html: str) -> dict:
                 "name": text(c.css_first("div.bold")),
                 "summary": text(c.css_first(".product-features")),
                 "url": absolute(link.attributes.get("href")) if link else None,
+                "image": image_url(c),
                 "variants": [_product_row(v) for v in c.css("div.Plugin_Product[data-link]")
                              if v.attributes.get("data-entity-id")],
             })

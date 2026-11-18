@@ -204,7 +204,7 @@ class Toppreise:
                 except FilterError as e:
                     raise ValueError(str(e)) from None
                 if blabels:
-                    applied.append(f"brand any of {blabels}")
+                    applied.append(f"brand: {' or '.join(blabels)}")
                 expert_ids = {f.id for f in fs.filters if f.expert}
                 sel.expert = any(p[1] in expert_ids for p in sel.props)
         if query:

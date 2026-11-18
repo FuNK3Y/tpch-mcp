@@ -45,3 +45,15 @@ def absolute(url: str | None) -> str | None:
     if not url:
         return None
     return url if url.startswith("http") else BASE + url
+
+
+def image_url(card: LexborNode, size: int = 400) -> str | None:
+    """Product image of a card, resized to `size` px (None for placeholders / no photo)."""
+    img = card.css_first("img.Plugin_Image")
+    if img is None:
+        return None
+    src = img.attributes.get("data-src") or img.attributes.get("src") or ""  # lazy images keep it in data-src
+    if not src or src.endswith(".svg") or "/img/" not in src:  # lazy placeholder / "no photo" image
+        return None
+    src = re.sub(r"/(\d+)-([0-9a-f]+)$", rf"/{size}-\2", src)
+    return "https:" + src if src.startswith("//") else src

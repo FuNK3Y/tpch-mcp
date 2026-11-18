@@ -83,7 +83,7 @@ def test_pricechart(fx):
     r = parse_pricechart(fx("pricechart_793054.json"), days=365)
     assert r["current"] == 7102.2 and r["points"] > 300
     assert r["lowest"]["price"] <= r["average"] <= r["highest"]["price"]
-    assert len(r["series"]) <= 26
+    assert len(r["series"]) <= 28  # sampled + first/last/lowest/highest day
     assert parse_pricechart("[]")["points"] == 0
 
 
