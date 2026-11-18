@@ -50,7 +50,46 @@ claude mcp add tpch -- docker run -i --rm --init --ipc=host tpch-mcp
 **Prompts:** `best_deal`, `buy_now_or_wait`, `compare`
 
 ## Settings (environment variables)
-`TOPPREISE_LANG` (default `en`), `TOPPREISE_NAV_DELAY_MIN/MAX`, `TOPPREISE_XHR_DELAY_MIN/MAX`, `TOPPREISE_SETTLE_MIN/MAX` (pause after a page load, default 0.3–0.7 s), `TOPPREISE_HEADLESS=1` (not recommended), `TOPPREISE_TIMEOUT_MS`.
+| Variable | Default | Purpose |
+|---|---|---|
+| `TPCH_TRANSPORT` | `stdio` | `stdio` (Claude Code / Desktop) or `http` (remote, e.g. claude.ai) |
+| `TPCH_HTTP_HOST` / `TPCH_HTTP_PORT` / `TPCH_HTTP_PATH` | `0.0.0.0` / `8000` / `/mcp` | HTTP listener |
+| `TPCH_PUBLIC_HOST` | – | Public hostname (e.g. `tpch.example.ch`), accepted in the `Host` header |
+| `TPCH_LANG` | `en` | Site language |
+| `TPCH_NAV_DELAY_MIN/MAX` | `5` / `10` s | Pause between page loads |
+| `TPCH_XHR_DELAY_MIN/MAX` | `2` / `4` s | Pause between in-page calls |
+| `TPCH_SETTLE_MIN/MAX` | `0.3` / `0.7` s | Pause after a page load |
+| `TPCH_TIMEOUT_MS` | `45000` | Per page / request |
+| `TPCH_HEADLESS` | `0` | `1` = headless Chromium (not recommended) |
+
+## Remote use (claude.ai) behind Traefik
+The HTTP transport has **no built-in auth**. Expose it only through a reverse proxy that checks a
+secret header. With Traefik, a router rule does it: requests without the exact header match no
+router and get a 404.
+
+```yaml
+  tpch:
+    image: ghcr.io/funk3y/tpch-mcp:latest
+    restart: unless-stopped
+    init: true
+    shm_size: 1gb            # Chromium needs more than Docker's 64 MB default
+    environment:
+      - TPCH_TRANSPORT=http
+      - TPCH_PUBLIC_HOST=tpch.${DOMAIN}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.tpch.rule=Host(`tpch.${DOMAIN}`) && Header(`X-Api-Key`, `${TPCH_API_KEY}`)
+      - traefik.http.services.tpch.loadbalancer.server.port=8000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz', timeout=5)"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+```
+
+Generate the key with `openssl rand -hex 32` and put it in `.env` as `TPCH_API_KEY=…`. In claude.ai, go to
+**Settings → Connectors → Add custom connector**. Use URL `https://tpch.<domain>/mcp`, choose **No sign-in**,
+and add a request header named `X-Api-Key` with the key as its value.
 
 ## Notes
 - Test fixtures are real page captures (gzipped) from November 2026.

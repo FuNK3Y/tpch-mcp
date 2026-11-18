@@ -6,10 +6,13 @@ from contextlib import asynccontextmanager
 from typing import Annotated, Any, Literal
 
 from mcp.server import MCPServer
+from mcp.server.transport_security import TransportSecuritySettings
+from pydantic import Field
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from . import __version__
-from pydantic import Field
-
+from .config import SETTINGS
 from .service import Toppreise
 
 logging.basicConfig(stream=sys.stderr, level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -29,7 +32,9 @@ async def lifespan(_server: MCPServer):
     try:
         yield {}
     finally:
-        if _tp is not None:
+        # stdio: one client per process, so close the browser with it. HTTP: the browser (and its
+        # warm site session + cache) is shared by all client sessions and lives with the process.
+        if _tp is not None and SETTINGS.transport != "http":
             await _tp.close()
 
 
@@ -62,6 +67,12 @@ mcp = MCPServer(
     instructions=INSTRUCTIONS,
     lifespan=lifespan,
 )
+
+
+@mcp.custom_route("/healthz", methods=["GET"])
+async def healthz(_request: Request) -> JSONResponse:
+    return JSONResponse({"status": "ok"})
+
 
 
 # ------------------------------------------------------------------ tools
@@ -250,7 +261,26 @@ def compare(products: str) -> str:
 
 
 def main() -> None:
-    mcp.run()
+    if SETTINGS.transport == "stdio":
+        mcp.run()
+        return
+    if SETTINGS.transport != "http":
+        sys.exit(f"TPCH_TRANSPORT must be 'stdio' or 'http', not {SETTINGS.transport!r}")
+    logging.getLogger(__name__).warning(
+        "HTTP transport has no built-in auth: expose it only through a reverse proxy that checks "
+        "a secret header (e.g. Traefik rule Host(...) && Header(`X-Api-Key`, `...`)).")
+    allowed_hosts = ["localhost:*", "127.0.0.1:*"] + ([SETTINGS.public_host] if SETTINGS.public_host else [])
+    mcp.run(
+        transport="streamable-http",
+        host=SETTINGS.http_host,
+        port=SETTINGS.http_port,
+        streamable_http_path=SETTINGS.http_path,
+        transport_security=TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=allowed_hosts,
+            allowed_origins=["https://claude.ai", "https://claude.com"],
+        ),
+    )
 
 
 if __name__ == "__main__":
