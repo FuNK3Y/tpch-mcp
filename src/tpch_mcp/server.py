@@ -81,8 +81,10 @@ async def find_category(
     query: Annotated[str, Field(description="What you are looking for, e.g. 'external ssd', 'mesh wifi', 'graphics card'")],
     limit: Annotated[int, Field(ge=1, le=20)] = 8,
 ) -> dict:
-    """Find toppreise categories matching free text. Returns ids, full paths and whether each is a leaf
-    (leaf categories have rich spec filters; parents only have brand/price filters)."""
+    """toppreise.ch (Swiss price comparison): find the product category for free text, the first step
+    to look up Swiss prices for a type of product (e.g. 'external ssd', 'robot vacuum', 'gaming monitor').
+    Returns category ids and paths; prefer leaf categories (is_leaf), which have spec filters.
+    Next: get_filters and browse."""
     return await tp().find_category(query, limit)
 
 
@@ -91,7 +93,9 @@ async def list_categories(
     parent_id: Annotated[str, Field(description="Category id, e.g. 'c200' (Computers & accessories) or 'start' for the top level")] = "c200",
     depth: Annotated[int, Field(ge=0, le=3, description="How many levels below the parent to include")] = 1,
 ) -> dict:
-    """Browse the category tree below a category."""
+    """toppreise.ch (Swiss price comparison): browse its product category tree. parent_id 'start' lists the
+    top-level departments, 'c200' is Computers & accessories. Use to explore what toppreise covers; for a
+    specific type of product, find_category is faster."""
     return await tp().list_categories(parent_id, depth)
 
 
@@ -102,8 +106,9 @@ async def get_filters(
     filter_name: Annotated[str | None, Field(description="Show all values of one filter (lists are capped otherwise)")] = None,
     value_search: Annotated[str | None, Field(description="With filter_name: only values containing this text")] = None,
 ) -> dict:
-    """Filters available in a category: name, type (any of / all of / yes/no / at least / at most / from-to),
-    values with product counts, brands, price ceiling and release years."""
+    """toppreise.ch (Swiss price comparison): the filters of a product category (e.g. memory size, Wi-Fi
+    standard, brand, price range, release year) with product counts. Use before browse to turn requirements
+    into filters; pass filter names and value labels to browse exactly as returned."""
     return await tp().get_filters(category_id, include_expert, filter_name, value_search)
 
 
@@ -127,9 +132,10 @@ async def browse(
                             "name_asc", "name_desc"] | None, Field(description="Default: site relevance")] = None,
     page: Annotated[int, Field(ge=1)] = 1,
 ) -> dict:
-    """List products in a category with filters and an optional name filter. Returns matching count,
-    pages, the filters actually applied by the site, and product / series cards with 'from' prices
-    (incl. and excl. shipping), offer counts and price per unit where the site shows one."""
+    """toppreise.ch (Swiss price comparison): list the products of a category with filters, e.g. sorted by
+    lowest price; the main tool for "cheapest X with Y in Switzerland". Prices in CHF incl. VAT: 'from'
+    prices with and without shipping, offer count, price per unit. Returns the filters the site actually
+    applied; use the product ids with get_offers or get_price_history."""
     return await tp().browse(category_id, query, filters, brands, price_min, price_max, availability,
                              min_year, sort, page)
 
@@ -141,9 +147,10 @@ async def search(
     sort: Annotated[Literal["price_asc", "price_desc", "popular", "newest", "most_offers", "availability",
                             "name_asc", "name_desc"] | None, Field(description="e.g. price_asc for the cheapest")] = None,
 ) -> dict:
-    """Quick product lookup: picks the best category for the words (site suggestions + category names),
-    then lists products in it whose name contains the words. Returns the chosen category and
-    alternatives; continue with get_filters/browse for precise filtering."""
+    """toppreise.ch (Swiss price comparison): quick lookup of Swiss prices (CHF) for a product name or type,
+    e.g. 'ps5', 'rtx 5090', 'samsung 990 pro'. Picks the best category and lists matching products with
+    'from' prices and offer counts. Use for "how much does X cost in Switzerland"; for precise
+    requirements continue with get_filters and browse."""
     return await tp().search(query, page, sort)
 
 
@@ -157,10 +164,10 @@ async def get_top_list(
     page: Annotated[int, Field(ge=1)] = 1,
     limit: Annotated[int, Field(ge=1, le=96, description="Max items returned (the site shows up to 96 per page)")] = 24,
 ) -> dict:
-    """The toppreise.ch home-page lists ("Top 100", "Top ratings", "New top prices", "New products"),
-    site-wide or for one category. Items have rank, id, name, price (excl./incl. shipping), image and
-    link; top_rated adds the rating (out of 6) and number of ratings; new_top_prices adds the price
-    change in percent."""
+    """toppreise.ch (Swiss price comparison): its curated lists - top100 (most popular), top_rated (best
+    user ratings, out of 6), new_top_prices (biggest price drops in the last 1-48 h, i.e. current deals)
+    and new_products - site-wide or for a category. Use for deals, bestsellers or what's new in
+    Switzerland. Prices in CHF."""
     return await tp().get_top_list(list, category_id, hours, page, limit)
 
 
@@ -168,8 +175,9 @@ async def get_top_list(
 async def get_product(
     product_id: Annotated[int | str, Field(description="Product id: 779730, 'p779730' or a full toppreise.ch product URL")],
 ) -> dict:
-    """Product details: name, brand, MPN/EAN, category, summary, full data sheet, price range,
-    offer count and the cheapest offer."""
+    """toppreise.ch (Swiss price comparison): details of one product - brand, MPN/EAN, category, full data
+    sheet (specs), Swiss price range in CHF, number of shops and the cheapest offer. Accepts an id,
+    'p123456' or a toppreise.ch URL."""
     return await tp().get_product(product_id)
 
 
@@ -180,10 +188,10 @@ async def get_offers(
     in_stock_only: bool = False,
     limit: Annotated[int, Field(ge=1, le=100)] = 20,
 ) -> dict:
-    """Shop offers for a product: shop, price, shipping, total, availability, shop rating, link.
-    Shop ratings are out of 6 (Swiss grades, 6 = best; e.g. "5.4/6"), not out of 5.
-    'total' is the site's incl.-shipping price (it can include shop/payment discounts, so it is
-    occasionally lower than 'price')."""
+    """toppreise.ch (Swiss price comparison): where to buy a product in Switzerland - every shop's offer with
+    price, shipping and total in CHF, availability, shop rating and link. Compare by 'total' (incl.
+    shipping; it can include shop discounts, so it is occasionally below 'price'). Shop ratings are out
+    of 6 (6 = best), not out of 5."""
     return await tp().get_offers(product_id, sort, in_stock_only, limit)
 
 
@@ -192,8 +200,9 @@ async def get_price_history(
     product_id: Annotated[int | str, Field(description="Product id: 779730, 'p779730' or a full toppreise.ch product URL")],
     days: Annotated[int, Field(ge=7, le=365)] = 90,
 ) -> dict:
-    """Lowest-price history summary: current, lowest (and when), highest, average, % change over
-    7/30/90 days, whether it is at its lowest now, plus a sampled series."""
+    """toppreise.ch (Swiss price comparison): history of a product's lowest Swiss price (CHF incl. shipping)
+    - current, lowest and when, highest, average, change over 7/30/90 days, and whether it is at its
+    lowest now. Use for "is this a good deal" or "buy now or wait"."""
     return await tp().get_price_history(product_id, days)
 
 
@@ -202,7 +211,8 @@ async def compare_products(
     product_ids: Annotated[list[int | str], Field(min_length=2, max_length=5,
                                                   description="Product ids or toppreise.ch URLs")],
 ) -> dict:
-    """Side-by-side comparison of 2-5 products: best total price, offer count and the specs that differ."""
+    """toppreise.ch (Swiss price comparison): compare 2-5 products side by side - best Swiss price (CHF incl.
+    shipping), number of shops and the specs that differ. Accepts ids or toppreise.ch URLs."""
     return await tp().compare_products(product_ids)
 
 
