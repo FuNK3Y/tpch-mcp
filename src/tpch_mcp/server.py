@@ -265,23 +265,19 @@ def main() -> None:
         mcp.run()
         return
     if SETTINGS.transport != "http":
-        sys.exit(f"TPCH_TRANSPORT must be 'stdio' or 'http', not {SETTINGS.transport!r}")
+        sys.exit(f"MCP_TRANSPORT must be 'stdio' or 'http', not {SETTINGS.transport!r}")
     logging.getLogger(__name__).warning(
         "HTTP transport has no built-in auth: expose it only through a reverse proxy that checks "
         "a secret header (e.g. Traefik rule Host(...) && Header(`X-Api-Key`, `...`)).")
-    allowed_hosts = ["localhost:*", "127.0.0.1:*"] + ([SETTINGS.public_host] if SETTINGS.public_host else [])
     mcp.run(
         transport="streamable-http",
         host=SETTINGS.http_host,
         port=SETTINGS.http_port,
         streamable_http_path=SETTINGS.http_path,
-        transport_security=TransportSecuritySettings(
-            enable_dns_rebinding_protection=True,
-            allowed_hosts=allowed_hosts,
-            allowed_origins=["https://claude.ai", "https://claude.com"],
-        ),
+        # The Host-header check guards unauthenticated servers on localhost against DNS rebinding;
+        # here the reverse proxy's secret-header check is the access control, so it is off.
+        transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
     )
-
 
 if __name__ == "__main__":
     main()

@@ -52,9 +52,8 @@ claude mcp add tpch -- docker run -i --rm --init --ipc=host tpch-mcp
 ## Settings (environment variables)
 | Variable | Default | Purpose |
 |---|---|---|
-| `TPCH_TRANSPORT` | `stdio` | `stdio` (Claude Code / Desktop) or `http` (remote, e.g. claude.ai) |
-| `TPCH_HTTP_HOST` / `TPCH_HTTP_PORT` / `TPCH_HTTP_PATH` | `0.0.0.0` / `8000` / `/mcp` | HTTP listener |
-| `TPCH_PUBLIC_HOST` | – | Public hostname (e.g. `tpch.example.ch`), accepted in the `Host` header |
+| `MCP_TRANSPORT` | `stdio` | `stdio` (Claude Code / Desktop) or `http` (remote, e.g. claude.ai) |
+| `MCP_HTTP_HOST` / `MCP_HTTP_PORT` / `MCP_HTTP_PATH` | `0.0.0.0` / `8000` / `/mcp` | HTTP listener |
 | `TPCH_LANG` | `en` | Site language |
 | `TPCH_NAV_DELAY_MIN/MAX` | `5` / `10` s | Pause between page loads |
 | `TPCH_XHR_DELAY_MIN/MAX` | `2` / `4` s | Pause between in-page calls |
@@ -74,8 +73,7 @@ router and get a 404.
     init: true
     shm_size: 1gb            # Chromium needs more than Docker's 64 MB default
     environment:
-      - TPCH_TRANSPORT=http
-      - TPCH_PUBLIC_HOST=tpch.${DOMAIN}
+      - MCP_TRANSPORT=http
     labels:
       - traefik.enable=true
       - traefik.http.routers.tpch.rule=Host(`tpch.${DOMAIN}`) && Header(`X-Api-Key`, `${TPCH_API_KEY}`)

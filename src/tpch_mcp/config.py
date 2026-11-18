@@ -1,4 +1,4 @@
-"""Runtime settings, overridable with environment variables (prefix TPCH_)."""
+"""Runtime settings from environment variables: TPCH_* for this app, MCP_* for the transport."""
 import os
 from dataclasses import dataclass
 
@@ -29,15 +29,14 @@ class Settings:
     categorymenu_hash: str = os.environ.get("TPCH_CATEGORYMENU_HASH", "849247345")
     pricechart_hash: str = os.environ.get("TPCH_PRICECHART_HASH", "1329180698")
 
-    # ---- transport: "stdio" (Claude Code / Desktop) or "http" (remote, e.g. claude.ai) ----
-    transport: str = os.environ.get("TPCH_TRANSPORT", "stdio")
-    http_host: str = os.environ.get("TPCH_HTTP_HOST", "0.0.0.0")
-    http_port: int = int(_float("TPCH_HTTP_PORT", 8000))
-    # Hostname clients use (Host header check against DNS rebinding), e.g. tpch.example.ch
-    public_host: str = os.environ.get("TPCH_PUBLIC_HOST", "")
-    # MCP endpoint path. The HTTP transport has no built-in auth: run it behind a reverse proxy
-    # that checks a secret header (see README: Traefik `Header(...)` router rule).
-    http_path: str = os.environ.get("TPCH_HTTP_PATH", "/mcp")
+    # ---- transport (generic MCP server settings, hence the MCP_ prefix) ----
+    # "stdio" (Claude Code / Desktop) or "http" (remote, e.g. claude.ai)
+    transport: str = os.environ.get("MCP_TRANSPORT", "stdio")
+    http_host: str = os.environ.get("MCP_HTTP_HOST", "0.0.0.0")
+    http_port: int = int(_float("MCP_HTTP_PORT", 8000))
+    # The HTTP transport has no built-in auth: run it behind a reverse proxy that checks a secret
+    # header (see README: Traefik `Header(...)` router rule).
+    http_path: str = os.environ.get("MCP_HTTP_PATH", "/mcp")
 
 
 SETTINGS = Settings()

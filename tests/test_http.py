@@ -34,7 +34,7 @@ def _req(url, method="GET", body=None, headers=None):
 def server():
     port = _free_port()
     base = f"http://localhost:{port}"
-    env = {**os.environ, "TPCH_TRANSPORT": "http", "TPCH_HTTP_HOST": "127.0.0.1", "TPCH_HTTP_PORT": str(port)}
+    env = {**os.environ, "MCP_TRANSPORT": "http", "MCP_HTTP_HOST": "127.0.0.1", "MCP_HTTP_PORT": str(port)}
     proc = subprocess.Popen([sys.executable, "-m", "tpch_mcp"], env=env,
                             stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     for _ in range(100):
@@ -61,7 +61,7 @@ def test_other_paths_are_404(server, path):
     assert _req(f"{server}{path}", "POST", INIT, MCP_HEADERS)[0] == 404
 
 
-def test_foreign_host_header_rejected(server):
-    # DNS-rebinding protection: only localhost and TPCH_PUBLIC_HOST are accepted
-    status, _ = _req(f"{server}/mcp", "POST", INIT, {**MCP_HEADERS, "Host": "evil.example.com"})
-    assert status in (400, 403, 421)
+def test_proxied_host_header_accepted(server):
+    # Behind Traefik the original Host is forwarded; no allow-list to maintain.
+    status, _ = _req(f"{server}/mcp", "POST", INIT, {**MCP_HEADERS, "Host": "tpch.example.ch"})
+    assert status == 200
