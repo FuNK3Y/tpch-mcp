@@ -277,8 +277,8 @@ def main() -> None:
     if SETTINGS.transport != "http":
         sys.exit(f"MCP_TRANSPORT must be 'stdio' or 'http', not {SETTINGS.transport!r}")
     logging.getLogger(__name__).warning(
-        "HTTP transport has no built-in auth: expose it only through a reverse proxy that checks "
-        "a secret header (e.g. Traefik rule Host(...) && Header(`X-Api-Key`, `...`)).")
+        "HTTP transport has no built-in auth: keep it on a private network or behind an "
+        "authenticating reverse proxy.")
     mcp.run(
         transport="streamable-http",
         host=SETTINGS.http_host,

@@ -34,8 +34,8 @@ class Settings:
     transport: str = os.environ.get("MCP_TRANSPORT", "stdio")
     http_host: str = os.environ.get("MCP_HTTP_HOST", "0.0.0.0")
     http_port: int = int(_float("MCP_HTTP_PORT", 8000))
-    # The HTTP transport has no built-in auth: run it behind a reverse proxy that checks a secret
-    # header (see README: Traefik `Header(...)` router rule).
+    # The HTTP transport has no built-in auth: keep it on a private network or behind an
+    # authenticating reverse proxy.
     http_path: str = os.environ.get("MCP_HTTP_PATH", "/mcp")
 
 

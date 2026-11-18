@@ -62,7 +62,7 @@ def test_other_paths_are_404(server, path):
 
 
 def test_proxied_host_header_accepted(server):
-    # Behind Traefik the original Host is forwarded; no allow-list to maintain.
+    # Behind a reverse proxy the original Host is forwarded; no allow-list to maintain.
     status, _ = _req(f"{server}/mcp", "POST", INIT, {**MCP_HEADERS, "Host": "tpch.example.ch"})
     assert status == 200
 

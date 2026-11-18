@@ -52,7 +52,7 @@ claude mcp add tpch -- docker run -i --rm --init tpch-mcp
 ## Settings (environment variables)
 | Variable | Default | Purpose |
 |---|---|---|
-| `MCP_TRANSPORT` | `stdio` | `stdio` (Claude Code / Desktop) or `http` (remote, e.g. claude.ai) |
+| `MCP_TRANSPORT` | `stdio` | `stdio` (Claude Code / Desktop) or `http` (remote clients) |
 | `MCP_HTTP_HOST` / `MCP_HTTP_PORT` / `MCP_HTTP_PATH` | `0.0.0.0` / `8000` / `/mcp` | HTTP listener |
 | `TPCH_LANG` | `en` | Site language |
 | `TPCH_NAV_DELAY_MIN/MAX` | `5` / `10` s | Pause between page loads |
@@ -61,10 +61,9 @@ claude mcp add tpch -- docker run -i --rm --init tpch-mcp
 | `TPCH_TIMEOUT_MS` | `45000` | Per page / request |
 | `TPCH_HEADLESS` | `0` | `1` = headless Chromium (not recommended) |
 
-## Remote use (claude.ai) behind Traefik
-The HTTP transport has **no built-in auth**. Expose it only through a reverse proxy that checks a
-secret header. With Traefik, a router rule does it: requests without the exact header match no
-router and get a 404.
+## Remote use (HTTP)
+With `MCP_TRANSPORT=http` the server listens on port 8000 (`/mcp`, plus `/healthz`). It has
+**no built-in auth**. Keep it on a private network, or behind a reverse proxy that authenticates.
 
 ```yaml
   tpch:
@@ -73,15 +72,11 @@ router and get a 404.
     init: true
     environment:
       - MCP_TRANSPORT=http
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.tpch.rule=Host(`tpch.${DOMAIN}`) && Header(`X-Api-Key`, `${TPCH_API_KEY}`)
-      - traefik.http.services.tpch.loadbalancer.server.port=8000
+    # ports:
+    #   - 127.0.0.1:8000:8000   # only if a client outside the compose network needs it
 ```
 
-Generate the key with `openssl rand -hex 32` and put it in `.env` as `TPCH_API_KEY=…`. In claude.ai, go to
-**Settings → Connectors → Add custom connector**. Use URL `https://tpch.<domain>/mcp`, choose **No sign-in**,
-and add a request header named `X-Api-Key` with the key as its value.
+Clients on the same compose network use `http://tpch:8000/mcp`.
 
 ## Notes
 - Test fixtures are real page captures (gzipped) from November 2026.
