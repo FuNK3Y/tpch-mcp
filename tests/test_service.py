@@ -143,3 +143,19 @@ async def test_top_list_paths(fx):
     assert nav.paths[-1] == "/new-best-prices" and "note" in r
     with pytest.raises(ValueError):
         await tp.get_top_list("new_top_prices", hours=3)
+
+
+@pytest.mark.parametrize("parent", ["start", "root", "", "all", "START"])
+async def test_list_categories_top_level(fx, parent):
+    tp = Toppreise(session=object())
+    tp.cache.set("categories", CategoryTree.from_json(fx("categorymenu.json.gz")))
+    r = await tp.list_categories(parent, 1)
+    names = [c["name"] for c in r["tree"]["children"]]
+    assert r["category"]["id"] == "start" and "Computers & accessories" in names and len(names) > 20
+
+
+@pytest.mark.parametrize("cid", ["c200", "200", " C200 "])
+async def test_category_id_forms(fx, cid):
+    tp = Toppreise(session=object())
+    tp.cache.set("categories", CategoryTree.from_json(fx("categorymenu.json.gz")))
+    assert (await tp.list_categories(cid, 0))["category"]["name"] == "Computers & accessories"

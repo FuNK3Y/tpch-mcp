@@ -95,7 +95,11 @@ class Toppreise:
 
     async def _category(self, category_id: str):
         tree = await self.categories()
-        cid = category_id if category_id.startswith("c") else f"c{category_id}"
+        cid = str(category_id or "").strip().lower()
+        if cid in ("", "start", "root", "all", "top"):
+            cid = "start"  # the top level ("All categories")
+        elif cid.isdigit():
+            cid = f"c{cid}"
         if cid not in tree.nodes:
             raise ValueError(f"Unknown category {category_id!r}; use find_category or list_categories")
         return tree, tree.nodes[cid]
