@@ -49,22 +49,6 @@ claude mcp add tpch -- docker run -i --rm --init tpch-mcp
 
 **Prompts:** `best_deal`, `buy_now_or_wait`, `compare`
 
-## Rich display (MCP Apps)
-In hosts that support MCP Apps (e.g. claude.ai), seven tools render with an interactive page
-(`ui://tpch/app.html`): a product carousel (`get_top_list`, `browse`, `search`) with **Offers** /
-**History** buttons that load more data inside the page, an offers table (`get_offers`), a price
-chart (`get_price_history`), a product card (`get_product`) and a comparison table
-(`compare_products`). Other clients, such as Claude Code, get the same JSON as before.
-
-- **External resources:** the page may only load two origins. One is the MCP Apps browser library
-  from jsDelivr (`@modelcontextprotocol/ext-apps`, version pinned with an integrity hash in
-  `src/tpch_mcp/ui/app.html`). Dependabot doesn't track it, so update it by hand. The other is
-  product images from `imgsrv.toppreise.ch`.
-- **No Referer:** both are loaded without a Referer, so toppreise.ch and jsDelivr see an anonymous
-  request from the viewer's browser.
-- **Tests:** `tests/test_ui.py` renders every view in Chromium inside a fake MCP Apps host.
-  `TPCH_UI_SCREENSHOTS=/dir` saves PNGs.
-
 ## Settings (environment variables)
 | Variable | Default | Purpose |
 |---|---|---|
