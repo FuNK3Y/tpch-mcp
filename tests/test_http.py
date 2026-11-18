@@ -65,3 +65,17 @@ def test_proxied_host_header_accepted(server):
     # Behind Traefik the original Host is forwarded; no allow-list to maintain.
     status, _ = _req(f"{server}/mcp", "POST", INIT, {**MCP_HEADERS, "Host": "tpch.example.ch"})
     assert status == 200
+
+
+def test_healthcheck_command(server):
+    port = server.rsplit(":", 1)[1]
+    env = {**os.environ, "MCP_TRANSPORT": "http", "MCP_HTTP_PORT": port}
+    ok = subprocess.run([sys.executable, "-m", "tpch_mcp.healthcheck"], env=env, timeout=30)
+    assert ok.returncode == 0
+
+
+def test_healthcheck_command_unhealthy_and_stdio():
+    env = {**os.environ, "MCP_TRANSPORT": "http", "MCP_HTTP_PORT": str(_free_port())}  # nothing listening
+    assert subprocess.run([sys.executable, "-m", "tpch_mcp.healthcheck"], env=env, timeout=30).returncode == 1
+    env = {**os.environ, "MCP_TRANSPORT": "stdio"}
+    assert subprocess.run([sys.executable, "-m", "tpch_mcp.healthcheck"], env=env, timeout=30).returncode == 0

@@ -27,5 +27,9 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 LABEL org.opencontainers.image.title="tpch-mcp" \
       org.opencontainers.image.description="MCP server for toppreise.ch (Swiss price comparison), personal use"
 
+# HTTP mode: probes /healthz. stdio mode (no listener): always healthy.
+HEALTHCHECK --interval=1m --timeout=10s --start-period=30s --retries=3 \
+  CMD ["python", "-m", "tpch_mcp.healthcheck"]
+
 # stdio MCP server by default; any other command (e.g. `pytest -q`) runs with the display available.
 ENTRYPOINT ["docker-entrypoint.sh"]

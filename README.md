@@ -78,11 +78,6 @@ router and get a 404.
       - traefik.enable=true
       - traefik.http.routers.tpch.rule=Host(`tpch.${DOMAIN}`) && Header(`X-Api-Key`, `${TPCH_API_KEY}`)
       - traefik.http.services.tpch.loadbalancer.server.port=8000
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz', timeout=5)"]
-      interval: 1m
-      timeout: 10s
-      retries: 3
 ```
 
 Generate the key with `openssl rand -hex 32` and put it in `.env` as `TPCH_API_KEY=…`. In claude.ai, go to
