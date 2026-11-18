@@ -1,0 +1,19 @@
+# Default Dependabot behaviour: one PR per update, per ecosystem.
+# Each PR is built and tested by the docker workflow; if that passes, the workflow merges it and
+# publishes a new image (see the "release-dependabot" job in .github/workflows/docker.yml).
+version: 2
+updates:
+  - package-ecosystem: pip        # pyproject.toml (exact pins)
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker     # base image tag + digest
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

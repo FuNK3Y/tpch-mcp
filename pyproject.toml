@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tpch-mcp"
+version = "0.1.0"
+description = "MCP server for the Swiss price comparison site toppreise.ch (personal use)"
+requires-python = ">=3.15"
+# Exact pins on purpose: Dependabot bumps them, CI tests every bump before it is merged.
+# Playwright downloads the matching Chromium at image build time, so its version can move freely.
+dependencies = [
+    "mcp==2.3.0",
+    "playwright==1.65.2",
+    "selectolax==1.0.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==9.2.0", "pytest-asyncio==1.5.0"]
+
+[project.scripts]
+tpch-mcp = "tpch_mcp.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = ["live: hits the real toppreise.ch (slow, opt-in with -m live)"]
+addopts = "-m 'not live'"
