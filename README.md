@@ -13,7 +13,7 @@ An MCP server for [toppreise.ch](https://www.toppreise.ch), the Swiss price comp
 ```bash
 docker build -t tpch-mcp .
 docker run --rm tpch-mcp pytest -q                                   # offline tests (fixtures)
-docker run --rm --init --ipc=host tpch-mcp pytest -q -m live -s      # hits the real site (slow)
+docker run --rm --init tpch-mcp pytest -q -m live -s      # hits the real site (slow)
 ```
 
 ## CI & updates
@@ -23,12 +23,12 @@ docker run --rm --init --ipc=host tpch-mcp pytest -q -m live -s      # hits the 
 
 Use the published image instead of a local build (run `docker login ghcr.io` first if the package is private):
 ```bash
-claude mcp add tpch -- docker run -i --rm --init --ipc=host ghcr.io/<owner>/tpch-mcp:latest
+claude mcp add tpch -- docker run -i --rm --init ghcr.io/<owner>/tpch-mcp:latest
 ```
 
 ## Use with Claude Code
 ```bash
-claude mcp add tpch -- docker run -i --rm --init --ipc=host tpch-mcp
+claude mcp add tpch -- docker run -i --rm --init tpch-mcp
 ```
 
 ## Tools
@@ -87,7 +87,6 @@ router and get a 404.
     image: ghcr.io/funk3y/tpch-mcp:latest
     restart: unless-stopped
     init: true
-    shm_size: 1gb            # Chromium needs more than Docker's 64 MB default
     environment:
       - MCP_TRANSPORT=http
     labels:

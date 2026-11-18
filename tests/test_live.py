@@ -1,6 +1,6 @@
 """End-to-end against the real toppreise.ch. Slow and polite; run explicitly:
 
-    docker run --rm --init --ipc=host tpch-mcp pytest -q -m live -s
+    docker run --rm --init tpch-mcp pytest -q -m live -s
 """
 import json
 

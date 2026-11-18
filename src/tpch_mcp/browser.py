@@ -85,7 +85,10 @@ class BrowserSession:
             return self._page
         log.info("starting Chromium (headless=%s)", self.s.headless)
         self._pw = await async_playwright().start()
-        self._browser = await self._pw.chromium.launch(headless=self.s.headless)
+        # --disable-dev-shm-usage: use /tmp instead of /dev/shm, so the container works with
+        # Docker's default 64 MB shared memory (no shm_size / --ipc=host needed).
+        self._browser = await self._pw.chromium.launch(
+            headless=self.s.headless, args=["--disable-dev-shm-usage"])
         self._ctx = await self._browser.new_context(
             locale="en-GB" if self.s.lang == "en" else f"{self.s.lang}-CH",
             timezone_id="Europe/Zurich",
