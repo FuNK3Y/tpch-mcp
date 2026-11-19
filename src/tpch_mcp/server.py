@@ -42,11 +42,11 @@ INSTRUCTIONS = """\
 Prices and offers from toppreise.ch, the Swiss price comparison site (prices in CHF, incl. VAT).
 
 Typical flow:
-1. toppreise_find_category("gaming monitor") -> pick a *leaf* category id (only leaves have spec filters).
-2. toppreise_get_filters(category_id) -> see filter names/values (use names exactly as shown, values as labels).
-3. toppreise_browse(category_id, filters={...}, query="words in the name", price_max=..., sort="price_asc").
-   Quick alternative: toppreise_search("ps5 pro") picks the category for you and filters by name.
-4. toppreise_get_product / toppreise_get_offers / toppreise_get_price_history for a product id from the results
+1. find_category("gaming monitor") -> pick a *leaf* category id (only leaves have spec filters).
+2. get_filters(category_id) -> see filter names/values (use names exactly as shown, values as labels).
+3. browse(category_id, filters={...}, query="words in the name", price_max=..., sort="price_asc").
+   Quick alternative: search("ps5 pro") picks the category for you and filters by name.
+4. get_product / get_offers / get_price_history for a product id from the results
    (ids, 'p123456' and full toppreise.ch URLs are all accepted).
 
 toppreise.ch's own site-wide text search is behind a human-verification check, which this server
@@ -76,7 +76,7 @@ async def healthz(_request: Request) -> JSONResponse:
 
 
 # ------------------------------------------------------------------ tools
-@mcp.tool(name="toppreise_find_category")
+@mcp.tool()
 async def find_category(
     query: Annotated[str, Field(description="What you are looking for, e.g. 'external ssd', 'mesh wifi', 'graphics card'")],
     limit: Annotated[int, Field(ge=1, le=20)] = 8,
@@ -84,22 +84,22 @@ async def find_category(
     """toppreise.ch (Swiss price comparison): find the product category for free text, the first step
     to look up Swiss prices for a type of product (e.g. 'external ssd', 'robot vacuum', 'gaming monitor').
     Returns category ids and paths; prefer leaf categories (is_leaf), which have spec filters.
-    Next: toppreise_get_filters and toppreise_browse."""
+    Next: get_filters and browse."""
     return await tp().find_category(query, limit)
 
 
-@mcp.tool(name="toppreise_list_categories")
+@mcp.tool()
 async def list_categories(
     parent_id: Annotated[str, Field(description="Category id, e.g. 'c200' (Computers & accessories) or 'start' for the top level")] = "c200",
     depth: Annotated[int, Field(ge=0, le=3, description="How many levels below the parent to include")] = 1,
 ) -> dict:
     """toppreise.ch (Swiss price comparison): browse its product category tree. parent_id 'start' lists the
     top-level departments, 'c200' is Computers & accessories. Use to explore what toppreise covers; for a
-    specific type of product, toppreise_find_category is faster."""
+    specific type of product, find_category is faster."""
     return await tp().list_categories(parent_id, depth)
 
 
-@mcp.tool(name="toppreise_get_filters")
+@mcp.tool()
 async def get_filters(
     category_id: Annotated[str, Field(description="Leaf category id, e.g. 'c37' (graphics cards)")],
     include_expert: Annotated[bool, Field(description="Also list expert filters (often 2-3x more, e.g. dimensions, weight)")] = False,
@@ -107,17 +107,17 @@ async def get_filters(
     value_search: Annotated[str | None, Field(description="With filter_name: only values containing this text")] = None,
 ) -> dict:
     """toppreise.ch (Swiss price comparison): the filters of a product category (e.g. memory size, Wi-Fi
-    standard, brand, price range, release year) with product counts. Use before toppreise_browse to turn requirements
-    into filters; pass filter names and value labels to toppreise_browse exactly as returned."""
+    standard, brand, price range, release year) with product counts. Use before browse to turn requirements
+    into filters; pass filter names and value labels to browse exactly as returned."""
     return await tp().get_filters(category_id, include_expert, filter_name, value_search)
 
 
-@mcp.tool(name="toppreise_browse")
+@mcp.tool()
 async def browse(
-    category_id: Annotated[str, Field(description="Category id from toppreise_find_category / toppreise_search, e.g. 'c2883' (PS5 consoles)")],
+    category_id: Annotated[str, Field(description="Category id from find_category / search, e.g. 'c2883' (PS5 consoles)")],
     query: Annotated[str | None, Field(description="Optional words the product name must contain, e.g. 'pro' or 'rtx 5090'")] = None,
     filters: Annotated[dict[str, Any] | None, Field(description=(
-        "Filter name -> wanted value(s), names/labels as returned by toppreise_get_filters. "
+        "Filter name -> wanted value(s), names/labels as returned by get_filters. "
         "'any of'/'all of': list of labels, e.g. {\"chipset\": [\"RTX 5080\", \"RTX 5090\"]}. "
         "'yes/no': true. 'at least'/'at most'/'from-to': {\"min\": \"16 GB\"}, {\"max\": \"300 W\"}, "
         "{\"min\": \"1 TB\", \"max\": \"2 TB\"}. Thresholds snap to the nearest site value that does not "
@@ -135,12 +135,12 @@ async def browse(
     """toppreise.ch (Swiss price comparison): list the products of a category with filters, e.g. sorted by
     lowest price; the main tool for "cheapest X with Y in Switzerland". Prices in CHF incl. VAT: 'from'
     prices with and without shipping, offer count, price per unit. Returns the filters the site actually
-    applied; use the product ids with toppreise_get_offers or toppreise_get_price_history."""
+    applied; use the product ids with get_offers or get_price_history."""
     return await tp().browse(category_id, query, filters, brands, price_min, price_max, availability,
                              min_year, sort, page)
 
 
-@mcp.tool(name="toppreise_search")
+@mcp.tool()
 async def search(
     query: Annotated[str, Field(description="Product words, e.g. 'ps5', 'rtx 5090', 'samsung 990 pro'")],
     page: Annotated[int, Field(ge=1)] = 1,
@@ -150,11 +150,11 @@ async def search(
     """toppreise.ch (Swiss price comparison): quick lookup of Swiss prices (CHF) for a product name or type,
     e.g. 'ps5', 'rtx 5090', 'samsung 990 pro'. Picks the best category and lists matching products with
     'from' prices and offer counts. Use for "how much does X cost in Switzerland"; for precise
-    requirements continue with toppreise_get_filters and toppreise_browse."""
+    requirements continue with get_filters and browse."""
     return await tp().search(query, page, sort)
 
 
-@mcp.tool(name="toppreise_get_top_list")
+@mcp.tool()
 async def get_top_list(
     list: Annotated[Literal["top100", "top_rated", "new_top_prices", "new_products"], Field(description=(
         "top100 = most popular products, top_rated = best user ratings, "
@@ -171,7 +171,7 @@ async def get_top_list(
     return await tp().get_top_list(list, category_id, hours, page, limit)
 
 
-@mcp.tool(name="toppreise_get_product")
+@mcp.tool()
 async def get_product(
     product_id: Annotated[int | str, Field(description="Product id: 779730, 'p779730' or a full toppreise.ch product URL")],
 ) -> dict:
@@ -181,7 +181,7 @@ async def get_product(
     return await tp().get_product(product_id)
 
 
-@mcp.tool(name="toppreise_get_offers")
+@mcp.tool()
 async def get_offers(
     product_id: Annotated[int | str, Field(description="Product id: 779730, 'p779730' or a full toppreise.ch product URL")],
     sort: Literal["total", "price", "availability", "rating"] = "total",
@@ -195,7 +195,7 @@ async def get_offers(
     return await tp().get_offers(product_id, sort, in_stock_only, limit)
 
 
-@mcp.tool(name="toppreise_get_price_history")
+@mcp.tool()
 async def get_price_history(
     product_id: Annotated[int | str, Field(description="Product id: 779730, 'p779730' or a full toppreise.ch product URL")],
     days: Annotated[int, Field(ge=7, le=365)] = 90,
@@ -206,7 +206,7 @@ async def get_price_history(
     return await tp().get_price_history(product_id, days)
 
 
-@mcp.tool(name="toppreise_compare_products")
+@mcp.tool()
 async def compare_products(
     product_ids: Annotated[list[int | str], Field(min_length=2, max_length=5,
                                                   description="Product ids or toppreise.ch URLs")],
@@ -232,7 +232,7 @@ async def filters_resource(category_id: str) -> str:
 
 @mcp.resource("toppreise://products/{product_id}", mime_type="application/json")
 async def product_resource(product_id: str) -> str:
-    """Product details (same as toppreise_get_product)."""
+    """Product details (same as get_product)."""
     return json.dumps(await tp().get_product(int(product_id)), ensure_ascii=False)
 
 
@@ -244,8 +244,8 @@ def best_deal(product: str, budget_chf: str = "", must_have: str = "") -> str:
         f"Find me the best deal on toppreise.ch for: {product}."
         + (f" Budget: up to CHF {budget_chf}." if budget_chf else "")
         + (f" Must have: {must_have}." if must_have else "")
-        + " Use toppreise_find_category to pick the right leaf category, toppreise_get_filters to translate my requirements"
-          " into filters, toppreise_browse sorted by price, then toppreise_get_offers for the top 2-3 candidates."
+        + " Use find_category to pick the right leaf category, get_filters to translate my requirements"
+          " into filters, browse sorted by price, then get_offers for the top 2-3 candidates."
           " Prefer in-stock offers from well-rated shops; show total price incl. shipping and links."
     )
 
@@ -254,7 +254,7 @@ def best_deal(product: str, budget_chf: str = "", must_have: str = "") -> str:
 def buy_now_or_wait(product_id: str) -> str:
     """Decide whether now is a good time to buy a product."""
     return (
-        f"For toppreise product {product_id}: call toppreise_get_price_history (365 days) and toppreise_get_offers."
+        f"For toppreise product {product_id}: call get_price_history (365 days) and get_offers."
         " Tell me whether the current best total price is a good deal compared with its history"
         " (lowest, average, recent trend) and recommend buying now or waiting, with reasons."
     )
@@ -265,7 +265,7 @@ def compare(products: str) -> str:
     """Compare products by name or id."""
     return (
         f"Compare these products on toppreise.ch: {products}. Resolve names to product ids with"
-        " toppreise_search/toppreise_browse if needed, then use toppreise_compare_products and summarise the meaningful differences"
+        " search/browse if needed, then use compare_products and summarise the meaningful differences"
         " and the best price for each."
     )
 

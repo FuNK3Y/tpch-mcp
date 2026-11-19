@@ -6,9 +6,8 @@ import sys
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-EXPECTED_TOOLS = {"toppreise_" + n for n in (
-    "find_category", "list_categories", "get_filters", "browse", "search", "get_top_list",
-    "get_product", "get_offers", "get_price_history", "compare_products")}
+EXPECTED_TOOLS = {"find_category", "list_categories", "get_filters", "browse", "search", "get_top_list",
+                  "get_product", "get_offers", "get_price_history", "compare_products"}
 EXPECTED_PROMPTS = {"best_deal", "buy_now_or_wait", "compare"}
 
 
