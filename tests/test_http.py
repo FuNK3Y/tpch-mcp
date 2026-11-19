@@ -79,3 +79,60 @@ def test_healthcheck_command_unhealthy_and_stdio():
     assert subprocess.run([sys.executable, "-m", "tpch_mcp.healthcheck"], env=env, timeout=30).returncode == 1
     env = {**os.environ, "MCP_TRANSPORT": "stdio"}
     assert subprocess.run([sys.executable, "-m", "tpch_mcp.healthcheck"], env=env, timeout=30).returncode == 0
+
+
+SLOW_SERVER = """
+import asyncio, sys
+from mcp.server import MCPServer
+from mcp.server.mcpserver import Context
+from mcp.server.transport_security import TransportSecuritySettings
+from tpch_mcp.keepalive import with_heartbeat
+mcp = MCPServer("slow")
+
+@mcp.tool()
+async def slow_with_heartbeat(ctx: Context) -> dict:
+    return await with_heartbeat(ctx, asyncio.sleep(7, result={"ok": True}))
+
+@mcp.tool()
+async def slow_silent() -> dict:
+    return await asyncio.sleep(7, result={"ok": True})
+
+mcp.run(transport="streamable-http", host="127.0.0.1", port=int(sys.argv[1]),
+        transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False))
+"""
+
+
+async def test_heartbeat_keeps_slow_calls_alive_for_strict_clients():
+    """Clients with httpx's default 5 s read timeout (e.g. Home Assistant's MCP client) drop
+    silent responses; the heartbeat keeps 7 s calls alive."""
+    import asyncio
+    import httpx2
+    from mcp import ClientSession
+    from mcp.client.streamable_http import streamable_http_client
+
+    port = _free_port()
+    proc = subprocess.Popen([sys.executable, "-c", SLOW_SERVER, str(port)],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        for _ in range(100):
+            try:
+                socket.create_connection(("127.0.0.1", port), timeout=0.2).close()
+                break
+            except OSError:
+                time.sleep(0.1)
+
+        async def call(tool):
+            async with asyncio.timeout(30):  # Home Assistant's hard cap per tool call
+                async with httpx2.AsyncClient() as http, \
+                        streamable_http_client(url=f"http://127.0.0.1:{port}/mcp", http_client=http) as (r, w), \
+                        ClientSession(r, w) as s:
+                    await s.initialize()
+                    return await s.call_tool(tool, {})
+
+        ok = await call("slow_with_heartbeat")
+        assert not ok.is_error and '"ok": true' in ok.content[0].text.replace(" ", " ")
+        with pytest.raises(BaseException):  # the failure mode we fixed: silent > 5 s
+            await call("slow_silent")
+    finally:
+        proc.terminate()
+        proc.wait(timeout=10)

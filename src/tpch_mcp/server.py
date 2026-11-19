@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from typing import Annotated, Any, Literal
 
 from mcp.server import MCPServer
+from mcp.server.mcpserver import Context
 from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import Field
 from starlette.requests import Request
@@ -13,6 +14,7 @@ from starlette.responses import JSONResponse
 
 from . import __version__
 from .config import SETTINGS
+from .keepalive import with_heartbeat
 from .service import Toppreise
 
 logging.basicConfig(stream=sys.stderr, level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -78,6 +80,7 @@ async def healthz(_request: Request) -> JSONResponse:
 # ------------------------------------------------------------------ tools
 @mcp.tool()
 async def find_category(
+    ctx: Context,
     query: Annotated[str, Field(description="What you are looking for, e.g. 'external ssd', 'mesh wifi', 'graphics card'")],
     limit: Annotated[int, Field(ge=1, le=20)] = 8,
 ) -> dict:
@@ -85,22 +88,24 @@ async def find_category(
     to look up Swiss prices for a type of product (e.g. 'external ssd', 'robot vacuum', 'gaming monitor').
     Returns category ids and paths; prefer leaf categories (is_leaf), which have spec filters.
     Next: get_filters and browse."""
-    return await tp().find_category(query, limit)
+    return await with_heartbeat(ctx, tp().find_category(query, limit))
 
 
 @mcp.tool()
 async def list_categories(
+    ctx: Context,
     parent_id: Annotated[str, Field(description="Category id, e.g. 'c200' (Computers & accessories) or 'start' for the top level")] = "c200",
     depth: Annotated[int, Field(ge=0, le=3, description="How many levels below the parent to include")] = 1,
 ) -> dict:
     """toppreise.ch (Swiss price comparison): browse its product category tree. parent_id 'start' lists the
     top-level departments, 'c200' is Computers & accessories. Use to explore what toppreise covers; for a
     specific type of product, find_category is faster."""
-    return await tp().list_categories(parent_id, depth)
+    return await with_heartbeat(ctx, tp().list_categories(parent_id, depth))
 
 
 @mcp.tool()
 async def get_filters(
+    ctx: Context,
     category_id: Annotated[str, Field(description="Leaf category id, e.g. 'c37' (graphics cards)")],
     include_expert: Annotated[bool, Field(description="Also list expert filters (often 2-3x more, e.g. dimensions, weight)")] = False,
     filter_name: Annotated[str | None, Field(description="Show all values of one filter (lists are capped otherwise)")] = None,
@@ -109,11 +114,12 @@ async def get_filters(
     """toppreise.ch (Swiss price comparison): the filters of a product category (e.g. memory size, Wi-Fi
     standard, brand, price range, release year) with product counts. Use before browse to turn requirements
     into filters; pass filter names and value labels to browse exactly as returned."""
-    return await tp().get_filters(category_id, include_expert, filter_name, value_search)
+    return await with_heartbeat(ctx, tp().get_filters(category_id, include_expert, filter_name, value_search))
 
 
 @mcp.tool()
 async def browse(
+    ctx: Context,
     category_id: Annotated[str, Field(description="Category id from find_category / search, e.g. 'c2883' (PS5 consoles)")],
     query: Annotated[str | None, Field(description="Optional words the product name must contain, e.g. 'pro' or 'rtx 5090'")] = None,
     filters: Annotated[dict[str, Any] | None, Field(description=(
@@ -136,12 +142,13 @@ async def browse(
     lowest price; the main tool for "cheapest X with Y in Switzerland". Prices in CHF incl. VAT: 'from'
     prices with and without shipping, offer count, price per unit. Returns the filters the site actually
     applied; use the product ids with get_offers or get_price_history."""
-    return await tp().browse(category_id, query, filters, brands, price_min, price_max, availability,
-                             min_year, sort, page)
+    return await with_heartbeat(ctx, tp().browse(category_id, query, filters, brands, price_min, price_max, availability,
+                             min_year, sort, page))
 
 
 @mcp.tool()
 async def search(
+    ctx: Context,
     query: Annotated[str, Field(description="Product words, e.g. 'ps5', 'rtx 5090', 'samsung 990 pro'")],
     page: Annotated[int, Field(ge=1)] = 1,
     sort: Annotated[Literal["price_asc", "price_desc", "popular", "newest", "most_offers", "availability",
@@ -151,11 +158,12 @@ async def search(
     e.g. 'ps5', 'rtx 5090', 'samsung 990 pro'. Picks the best category and lists matching products with
     'from' prices and offer counts. Use for "how much does X cost in Switzerland"; for precise
     requirements continue with get_filters and browse."""
-    return await tp().search(query, page, sort)
+    return await with_heartbeat(ctx, tp().search(query, page, sort))
 
 
 @mcp.tool()
 async def get_top_list(
+    ctx: Context,
     list: Annotated[Literal["top100", "top_rated", "new_top_prices", "new_products"], Field(description=(
         "top100 = most popular products, top_rated = best user ratings, "
         "new_top_prices = biggest recent price drops, new_products = newly listed products"))] = "top100",
@@ -168,21 +176,23 @@ async def get_top_list(
     user ratings, out of 6), new_top_prices (biggest price drops in the last 1-48 h, i.e. current deals)
     and new_products - site-wide or for a category. Use for deals, bestsellers or what's new in
     Switzerland. Prices in CHF."""
-    return await tp().get_top_list(list, category_id, hours, page, limit)
+    return await with_heartbeat(ctx, tp().get_top_list(list, category_id, hours, page, limit))
 
 
 @mcp.tool()
 async def get_product(
+    ctx: Context,
     product_id: Annotated[int | str, Field(description="Product id: 779730, 'p779730' or a full toppreise.ch product URL")],
 ) -> dict:
     """toppreise.ch (Swiss price comparison): details of one product - brand, MPN/EAN, category, full data
     sheet (specs), Swiss price range in CHF, number of shops and the cheapest offer. Accepts an id,
     'p123456' or a toppreise.ch URL."""
-    return await tp().get_product(product_id)
+    return await with_heartbeat(ctx, tp().get_product(product_id))
 
 
 @mcp.tool()
 async def get_offers(
+    ctx: Context,
     product_id: Annotated[int | str, Field(description="Product id: 779730, 'p779730' or a full toppreise.ch product URL")],
     sort: Literal["total", "price", "availability", "rating"] = "total",
     in_stock_only: bool = False,
@@ -192,28 +202,30 @@ async def get_offers(
     price, shipping and total in CHF, availability, shop rating and link. Compare by 'total' (incl.
     shipping; it can include shop discounts, so it is occasionally below 'price'). Shop ratings are out
     of 6 (6 = best), not out of 5."""
-    return await tp().get_offers(product_id, sort, in_stock_only, limit)
+    return await with_heartbeat(ctx, tp().get_offers(product_id, sort, in_stock_only, limit))
 
 
 @mcp.tool()
 async def get_price_history(
+    ctx: Context,
     product_id: Annotated[int | str, Field(description="Product id: 779730, 'p779730' or a full toppreise.ch product URL")],
     days: Annotated[int, Field(ge=7, le=365)] = 90,
 ) -> dict:
     """toppreise.ch (Swiss price comparison): history of a product's lowest Swiss price (CHF incl. shipping)
     - current, lowest and when, highest, average, change over 7/30/90 days, and whether it is at its
     lowest now. Use for "is this a good deal" or "buy now or wait"."""
-    return await tp().get_price_history(product_id, days)
+    return await with_heartbeat(ctx, tp().get_price_history(product_id, days))
 
 
 @mcp.tool()
 async def compare_products(
+    ctx: Context,
     product_ids: Annotated[list[int | str], Field(min_length=2, max_length=5,
                                                   description="Product ids or toppreise.ch URLs")],
 ) -> dict:
     """toppreise.ch (Swiss price comparison): compare 2-5 products side by side - best Swiss price (CHF incl.
     shipping), number of shops and the specs that differ. Accepts ids or toppreise.ch URLs."""
-    return await tp().compare_products(product_ids)
+    return await with_heartbeat(ctx, tp().compare_products(product_ids))
 
 
 # ------------------------------------------------------------------ resources
