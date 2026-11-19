@@ -34,16 +34,16 @@ claude mcp add tpch -- docker run -i --rm --init tpch-mcp
 ## Tools
 | Tool | Purpose |
 |---|---|
-| `find_category(query)` | Free text → category ids (leaf categories have spec filters) |
-| `list_categories(parent_id, depth)` | Browse the category tree |
-| `get_filters(category_id, include_expert, filter_name, value_search)` | The category's filters, values, brands, price/year ranges |
-| `browse(category_id, query, filters, brands, price_min/max, availability, min_year, sort, page)` | Filtered product list |
-| `search(query)` | Picks a category for the words, then filters product names (the site's own full-text search is behind a bot check) |
-| `get_top_list(list, category_id, hours, page, limit)` | Home-page lists: `top100`, `top_rated`, `new_top_prices` (last 1–48 h, default 48), `new_products`, site-wide or per category |
-| `get_product(product_id)` | Details, data sheet, price range, cheapest offer |
-| `get_offers(product_id, sort, in_stock_only, limit)` | All shop offers |
-| `get_price_history(product_id, days)` | Price history summary |
-| `compare_products(product_ids)` | Specs that differ, plus best prices |
+| `toppreise_find_category(query)` | Free text → category ids (leaf categories have spec filters) |
+| `toppreise_list_categories(parent_id, depth)` | Browse the category tree |
+| `toppreise_get_filters(category_id, include_expert, filter_name, value_search)` | The category's filters, values, brands, price/year ranges |
+| `toppreise_browse(category_id, query, filters, brands, price_min/max, availability, min_year, sort, page)` | Filtered product list |
+| `toppreise_search(query)` | Picks a category for the words, then filters product names (the site's own full-text search is behind a bot check) |
+| `toppreise_get_top_list(list, category_id, hours, page, limit)` | Home-page lists: `top100`, `top_rated`, `new_top_prices` (last 1–48 h, default 48), `new_products`, site-wide or per category |
+| `toppreise_get_product(product_id)` | Details, data sheet, price range, cheapest offer |
+| `toppreise_get_offers(product_id, sort, in_stock_only, limit)` | All shop offers |
+| `toppreise_get_price_history(product_id, days)` | Price history summary |
+| `toppreise_compare_products(product_ids)` | Specs that differ, plus best prices |
 
 **Resources:** `toppreise://categories`, `toppreise://categories/{id}/filters`, `toppreise://products/{id}`
 

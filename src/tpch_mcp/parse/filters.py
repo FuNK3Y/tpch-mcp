@@ -110,7 +110,7 @@ class FilterSet:
         if hidden:
             res["expert_filters_hidden"] = hidden
         if not out:
-            res["note"] = "No spec filters here - pick a leaf category (see list_categories / find_category)."
+            res["note"] = "No spec filters here - pick a leaf category (see toppreise_list_categories / toppreise_find_category)."
         return res
 
     def values_of(self, filter_name: str, search: str | None = None) -> dict:

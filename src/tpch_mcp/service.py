@@ -101,7 +101,7 @@ class Toppreise:
         elif cid.isdigit():
             cid = f"c{cid}"
         if cid not in tree.nodes:
-            raise ValueError(f"Unknown category {category_id!r}; use find_category or list_categories")
+            raise ValueError(f"Unknown category {category_id!r}; use toppreise_find_category or toppreise_list_categories")
         return tree, tree.nodes[cid]
 
     async def list_categories(self, parent_id: str = "c200", depth: int = 1) -> dict:
@@ -189,9 +189,9 @@ class Toppreise:
                      max_variants: int = 3) -> dict:
         if not category_id:
             raise ValueError(
-                "browse needs a category_id. Free-text search across the whole site is behind a human-"
-                "verification check on toppreise.ch; use search(query) or find_category(query) to pick a "
-                "category, then browse(category_id, query=...) to filter by text inside it.")
+                "toppreise_browse needs a category_id. Free-text search across the whole site is behind a human-"
+                "verification check on toppreise.ch; use toppreise_search(query) or toppreise_find_category(query) to pick a "
+                "category, then toppreise_browse(category_id, query=...) to filter by text inside it.")
         page = max(1, int(page or 1))
         applied: list[str] = []
         sel = sfhmod.Selection()
@@ -304,7 +304,7 @@ class Toppreise:
                 candidates.append(c | {"source": "category name match"})
         if not candidates:
             return {"query": query, "matches": 0, "items": [],
-                    "warnings": ["No matching category found; try find_category with other words."]}
+                    "warnings": ["No matching category found; try toppreise_find_category with other words."]}
         chosen = next((c for c in candidates if c["is_leaf"]), candidates[0])
         res = await self.browse(chosen["id"], query=query, page=page, sort=sort)
         if not res["matches"]:
@@ -312,8 +312,8 @@ class Toppreise:
             res.setdefault("warnings", []).append(
                 f'No product names contain "{query}" in this category; showing the whole category instead.')
         res["other_categories"] = [c for c in candidates if c["id"] != chosen["id"]][:5]
-        res["tip"] = ("Results come from the category above with a text filter. Use get_filters + "
-                      "browse(category_id, ...) to narrow down, or pick one of other_categories.")
+        res["tip"] = ("Results come from the category above with a text filter. Use toppreise_get_filters + "
+                      "toppreise_browse(category_id, ...) to narrow down, or pick one of other_categories.")
         return res
 
     async def get_top_list(self, kind: str = "top100", category_id: str | None = None, hours: int = 48,
